@@ -1,0 +1,11 @@
+*.py[co]
+.*.sw[po]
+*~*
+tags
+
+
+node_modules/
+bower_components/
+npm-debug.log
+
+snapshots/
