@@ -6,13 +6,19 @@ var fs = require('fs');
 var server = require('webserver').create();
 var dataDir = 'snapshots';
 
-var pageManager = require('./pagemanager.js').create();
+var pageManager = require('./pagemanager.js').create({
+    excludes: [
+        /\bgoogle\b/,
+        /\byahoo\b/,
+        /\bhm\.baidu\.com\b/,
+        /.*.(gif|jpg|jpeg|png|css)[\#\?]?/
+    ]
+});
 
 var takeSnapshot = function(url, callback) {
     /*
      * TODO:
      * - handle non-200
-     * - exclude useless resources
      */
     var page = pageManager.getPage();
 

@@ -9,11 +9,14 @@ var webPage = require('webpage');
  * Page manager factory
  * manager manages working pages and recycled pages
  */
-module.exports.create = function() {
+module.exports.create = function(options) {
+    var options = options || {};
+
     return {
         maxPages: 100,  // not implemented yet
         workingPages: [],
         recycledPages: [],
+        excludes: options.excludes || [],  // regex patterns to exclude resources
 
         /**
          * Tell internal state
@@ -29,6 +32,7 @@ module.exports.create = function() {
          * Create a page instance
          */
         _createPage: function() {
+            var thisManager = this;
             var page = webPage.create();
             page.settings.userAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36';
 
@@ -39,6 +43,18 @@ module.exports.create = function() {
             page.onClosing = function(closingPage) {
                 logging.log('Closing page, URL: ', closingPage.url);
             };
+
+            page.onResourceRequested = function(requestData, networkRequest) {
+                //logging.log('Request#' + requestData.id, requestData.url);
+                thisManager.excludes.forEach(function(pat) {
+                    if(pat.test(requestData.url)) {
+                        networkRequest.abort();
+                    }
+                });
+            };
+            //page.onResourceReceived = function(response) {
+            //    logging.log('Response#' + response.id, response.stage, response.url);
+            //};
 
             this.workingPages.push(page);
             return page;
