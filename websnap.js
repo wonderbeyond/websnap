@@ -1,17 +1,12 @@
-/**
- * Simple web snapshot service
- */
+var http = require('http');
 var logging = require('./utils/logging.js');
-var fs = require('fs');
-var server = require('webserver').create();
-var dataDir = 'snapshots';
-
 var pageManager = require('./pagemanager.js').create({
     excludes: [
         /\bgoogle\b/,
         /\byahoo\b/,
         /\bhm\.baidu\.com\b/,
-        /.*.(gif|jpg|jpeg|png|css)[\#\?]?/
+        /.*.(gif|jpg|jpeg|png|css)[\#\?]?/,
+        /ajax\/funddata\.js/
     ]
 });
 
@@ -20,44 +15,51 @@ var takeSnapshot = function(url, callback) {
      * TODO:
      * - handle non-200
      */
-    var page = pageManager.getPage();
+    var waitingTimeAfterPageLoad = 0;
 
-    page.open(url, function(status) {
-        if (status === "success") {
-            logging.log('Successfully taken snapshot for', url);
-            var htmlText = page.evaluate(function() {
-                document.body.bgColor = 'white';
-                return document.getElementsByTagName('html')[0].outerHTML;
-            });
-
-            if (callback != undefined) {
-                callback(htmlText, page);
+    pageManager.getPage(function(page) {
+        logging.log('Got a page for rendering');
+        page.open(url, function(status) {
+            if (status === "success") {
+                logging.log('Successfully loaded', url);
+                // NOTE: just wating is not safe!
+                setTimeout(function() {
+                    logging.log('Capturing DOM of', url);
+                    page.evaluate(function() {
+                        if (!document || !document.body) {
+                            return null;
+                        }
+                        document.body.bgColor = 'white';
+                        return document.getElementsByTagName('html')[0].outerHTML;
+                    }, function(htmlText) {
+                        callback(htmlText);
+                        pageManager.throwAway(page)
+                    });
+                }, waitingTimeAfterPageLoad);
+            } else {
+                logging.log('Failed to load', url);
+                pageManager.throwAway(page)
             }
-
-        } else {
-            logging.log('Failed to take snapshot for', url);
-        }
-        //phantom.exit();
+        });
     });
 };
 
-server.listen(8200, function(request, response) {
-    logging.log("Got request", request.url);
-    var urlBase64 = decodeURIComponent(request.url.trim()).slice(1);
-    var url = atob(urlBase64).trim(); // decode from base64
-    logging.log("Start taking snapshot for", url);
+/**
+ * TODO: wait-for support(Wait-For-Selector, Wait-For-Console, Wait-For-Event)
+ */
+http.createServer(function(req, res) {
+    logging.log("Got request", req.url);
+    var urlBase64 = decodeURIComponent(req.url.trim()).slice(1);
+    var targetUrl = new Buffer(urlBase64, 'base64').toString().trim(); // decode from base64
+    logging.log("Start taking snapshot for", targetUrl);
 
-    takeSnapshot(url, function(htmlText, page) {
-        //fs.write(dataDir + '/' + urlBase64 + '.html', htmlText, 'w');
-        //page.render(dataDir + '/' + urlBase64 + '.png');
-        pageManager.giveBack(page);
+    takeSnapshot(targetUrl, function(htmlText) {
 
-        response.statusCode = 200;
-        response.setEncoding('UTF-8');
+        res.writeHead(200, {
+            'Content-Type': 'text/html'
+        });
 
-        response.setHeader("Content-Type", "text/html; charset=UTF-8");
-
-        response.write(htmlText);
-        response.close();
+        res.end(htmlText);
     });
-});
+
+}).listen(8300);
