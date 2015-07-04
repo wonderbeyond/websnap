@@ -42,11 +42,15 @@ server.listen(8200, function(request, response) {
     logging.log("Start taking snapshot for", url);
 
     takeSnapshot(url, function(htmlText, page) {
-        fs.write(dataDir + '/' + urlBase64 + '.html', htmlText, 'w');
-        page.render(dataDir + '/' + urlBase64 + '.png');
+        //fs.write(dataDir + '/' + urlBase64 + '.html', htmlText, 'w');
+        //page.render(dataDir + '/' + urlBase64 + '.png');
         pageManager.giveBack(page);
 
         response.statusCode = 200;
+        response.setEncoding('UTF-8');
+
+        response.setHeader("Content-Type", "text/html; charset=UTF-8");
+
         response.write(htmlText);
         response.close();
     });
