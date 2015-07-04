@@ -12,9 +12,7 @@ var takeSnapshot = function(url, callback) {
     /*
      * TODO:
      * - handle non-200
-     * - close page activity if done task
-     * - do not overwrite page if doing task
-     * - exclue useless resources
+     * - exclude useless resources
      */
     var page = pageManager.getPage();
 
@@ -37,10 +35,10 @@ var takeSnapshot = function(url, callback) {
     });
 };
 
-var listening = server.listen(8200, function (request, response) {
+server.listen(8200, function(request, response) {
     logging.log("Got request", request.url);
     var urlBase64 = decodeURIComponent(request.url.trim()).slice(1);
-    var url = atob(urlBase64).trim();  // decode from base64
+    var url = atob(urlBase64).trim(); // decode from base64
     logging.log("Start taking snapshot for", url);
 
     takeSnapshot(url, function(htmlText, page) {
@@ -53,4 +51,3 @@ var listening = server.listen(8200, function (request, response) {
         response.close();
     });
 });
-
