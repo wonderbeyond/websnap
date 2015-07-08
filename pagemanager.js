@@ -37,8 +37,15 @@ module.exports.create = function(options) {
         _setupPage: function(page) {
             var thisManager = this;
 
-            // Refer to https://gist.github.com/cjoudrey/1341747, about resources trace
+            // Refer to https://gist.github.com/cjoudrey/1341747,
+            // about trace of pending requests
             page.pendingRequests = 0;
+            page.waitRequestTimeout = undefined;
+            page._noPendingRequestsListener = [];
+
+            page.onNoPendingRequests = function(callback) {
+                page._noPendingRequestsListener.push(callback);
+            };
 
             page.set('settings.excludedResources', thisManager.excludes.map(function(v) {
                 return v.toString();
@@ -68,6 +75,11 @@ module.exports.create = function(options) {
             }, function(requestData) {
                 // NOTE: this code executes just here
                 if (!thisManager.shouldExclued(requestData.url)) {
+                    if (page.waitRequestTimeout) {
+                        logging.log('New requests comes after pending count went 0');
+                        clearTimeout(page.waitRequestTimeout);
+                        page.waitRequestTimeout = undefined;
+                    }
                     page.pendingRequests += 1;
                     logging.log(util.format('Pending requests=%d, plus %s', page.pendingRequests, requestData.url));
                 }
@@ -78,6 +90,15 @@ module.exports.create = function(options) {
                 if (response.stage === 'end' && response.url && !thisManager.shouldExclued(response.url)) {
                     page.pendingRequests -= 1;
                     logging.log(util.format('Pending requests=%d, minus %s', page.pendingRequests, response.url));
+                    if (page.pendingRequests == 0) {
+                        logging.log('Wait if more requests...');
+                        page.waitRequestTimeout = setTimeout(function() {
+                            logging.log('No more requests 100ms after pending request went 0');
+                            page._noPendingRequestsListener.forEach(function(callback) {
+                                callback();
+                            });
+                        }, 100);
+                    }
                 }
             });
 
