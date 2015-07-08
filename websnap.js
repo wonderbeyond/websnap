@@ -23,21 +23,19 @@ var takeSnapshot = function(url, callback) {
             if (status === "success") {
                 logging.log('Successfully loaded', url);
                 // NOTE: just wating is not safe!
-                setTimeout(function() {
-                    page.onNoPendingRequests(function() {
-                        logging.log('Capturing DOM of', url);
-                        page.evaluate(function() {
-                            if (!document || !document.body) {
-                                return null;
-                            }
-                            document.body.bgColor = 'white';
-                            return document.getElementsByTagName('html')[0].outerHTML;
-                        }, function(htmlText) {
-                            callback(htmlText);
-                            pageManager.throwAway(page)
-                        });
+                page.onNoPendingRequests(function() {
+                    logging.log('Capturing DOM of', url);
+                    page.evaluate(function() {
+                        if (!document || !document.body) {
+                            return null;
+                        }
+                        document.body.bgColor = 'white';
+                        return document.getElementsByTagName('html')[0].outerHTML;
+                    }, function(htmlText) {
+                        callback(htmlText);
+                        pageManager.throwAway(page)
                     });
-                }, waitingTimeAfterPageLoad);
+                });
             } else {
                 logging.log('Failed to load', url);
                 pageManager.throwAway(page)
