@@ -23,7 +23,7 @@ var takeSnapshot = function(url, callback) {
             if (status === "success") {
                 logging.log('Successfully loaded', url);
                 // NOTE: just wating is not safe!
-                page.onNoPendingRequests(function() {
+                page.onPageIdle(function() {
                     logging.log('Capturing DOM of', url);
                     page.evaluate(function() {
                         if (!document || !document.body) {
@@ -33,12 +33,12 @@ var takeSnapshot = function(url, callback) {
                         return document.getElementsByTagName('html')[0].outerHTML;
                     }, function(htmlText) {
                         callback(htmlText);
-                        pageManager.throwAway(page)
+                        pageManager.throwAway(page);
                     });
                 });
             } else {
                 logging.log('Failed to load', url);
-                pageManager.throwAway(page)
+                pageManager.throwAway(page);
             }
         });
     });

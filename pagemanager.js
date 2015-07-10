@@ -13,7 +13,7 @@ var util = require('util');
  * TODO: support multiple phantomjs instances
  */
 module.exports.create = function(options) {
-    var options = options || {};
+    options = options || {};
 
     return {
         excludes: options.excludes || [], // regex patterns to exclude resources
@@ -41,17 +41,17 @@ module.exports.create = function(options) {
             // about trace of pending requests
             page.pendingRequests = 0;
             page.waitRequestTimeout = undefined;
-            page._noPendingRequestsListener = [];
+            page._pageIdleListeners = [];
 
-            page.onNoPendingRequests = function(callback) {
-                page._noPendingRequestsListener.push(callback);
+            page.onPageIdle = function(callback) {
+                page._pageIdleListeners.push(callback);
             };
 
             page.set('settings.excludedResources', thisManager.excludes.map(function(v) {
                 return v.toString();
             }));
 
-            page.set('settings.userAgent', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36')
+            page.set('settings.userAgent', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36');
             page.set('onUrlChanged', function(targetUrl) {
                 logging.log('New URL: ' + targetUrl);
             });
@@ -66,7 +66,7 @@ module.exports.create = function(options) {
                 console.log('Request#' + requestData.id, requestData.url);
 
                 page.settings.excludedResources.forEach(function(v) {
-                    var pat = eval(v)
+                    var pat = eval(v);
                     if (pat.test(requestData.url)) {
                         request.abort();
                         console.log(requestData.url, 'rejected');
@@ -90,11 +90,11 @@ module.exports.create = function(options) {
                 if (response.stage === 'end' && response.url && !thisManager.shouldExclued(response.url)) {
                     page.pendingRequests -= 1;
                     logging.log(util.format('Pending requests=%d, minus %s', page.pendingRequests, response.url));
-                    if (page.pendingRequests == 0) {
+                    if (page.pendingRequests === 0) {
                         logging.log('Wait if more requests...');
                         page.waitRequestTimeout = setTimeout(function() {
                             logging.log('No more requests 100ms after pending request went 0');
-                            page._noPendingRequestsListener.forEach(function(callback) {
+                            page._pageIdleListeners.forEach(function(callback) {
                                 callback();
                             });
                         }, 100);
@@ -126,7 +126,7 @@ module.exports.create = function(options) {
                 res[p.belongingPhantomjs.process.pid].recycledPages += 1;
             });
 
-            return res
+            return res;
         },
 
         /**
@@ -152,7 +152,7 @@ module.exports.create = function(options) {
             logging.log('Creating new phantomjs instance');
             if (thisManager.phantomjsInstances.length === 0) {
                 phantom.create(function(ph) {
-                    thisManager.phantomjsInstances.push(ph)
+                    thisManager.phantomjsInstances.push(ph);
                     logging.log(util.format('New phantomjs instance(pid=%s) created', ph.process.pid));
                     callback(ph);
                 }, {
@@ -243,5 +243,5 @@ module.exports.create = function(options) {
                 }
             });
         },
-    }
+    };
 };
