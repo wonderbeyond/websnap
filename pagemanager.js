@@ -37,8 +37,9 @@ module.exports.create = function(options) {
         _setupPage: function(page) {
             var thisManager = this;
 
-            // Refer to https://gist.github.com/cjoudrey/1341747,
-            // about trace of pending requests
+            // Refer to:
+            // - https://gist.github.com/cjoudrey/1341747, about trace of pending requests
+            // - https://cdnjs.com/libraries/backbone.js/tutorials/seo-for-single-page-apps/
             page.pendingRequests = 0;
             page.waitRequestTimeout = undefined;
             page._pageIdleListeners = [];
