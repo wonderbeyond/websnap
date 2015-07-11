@@ -1,0 +1,29 @@
+{
+  "name": "websnap",
+  "version": "1.0.0",
+  "description": "Simple web snapshot service",
+  "main": "websnap.js",
+  "dependencies": {
+    "phantom": "^0.7.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wonderbeyond/websnap.git"
+  },
+  "keywords": [
+    "websnap",
+    "phantomjs",
+    "seo",
+    "spa"
+  ],
+  "author": "wonderbeyond",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wonderbeyond/websnap/issues"
+  },
+  "homepage": "https://github.com/wonderbeyond/websnap#readme"
+}
