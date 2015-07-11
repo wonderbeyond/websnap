@@ -1,4 +1,6 @@
-var http = require('http');
+var util = require('util');
+var express = require('express');
+var querystring = require('querystring');
 var logging = require('./utils/logging.js');
 var pageManager = require('./pagemanager.js').create({
     excludes: [
@@ -47,19 +49,21 @@ var takeSnapshot = function(url, callback) {
 /**
  * TODO: wait-for support(Wait-For-Selector, Wait-For-Console, Wait-For-Event)
  */
-http.createServer(function(req, res) {
+var webapp = express();
+webapp.get(/snap\/(.*)/, function(req, res) {
+    /**
+     * Request url example:
+     * http "http://127.0.0.1:8300/snap/base64-of-forwarded-url"
+     */
     logging.log("Got request", req.url);
-    var urlBase64 = decodeURIComponent(req.url.trim()).slice(1);
-    var targetUrl = new Buffer(urlBase64, 'base64').toString().trim(); // decode from base64
+    var targetUrl = new Buffer(req.params[0] ,'base64').toString().trim();
     logging.log("Start taking snapshot for", targetUrl);
-
     takeSnapshot(targetUrl, function(htmlText) {
-
-        res.writeHead(200, {
+        res.status(200);
+        res.set({
             'Content-Type': 'text/html'
-        });
-
-        res.end(htmlText);
+        })
+        res.send(htmlText);
     });
-
-}).listen(8300);
+});
+webapp.listen(8300);
