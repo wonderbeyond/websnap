@@ -66,4 +66,7 @@ webapp.get(/snap\/(.*)/, function(req, res) {
         res.send(htmlText);
     });
 });
+webapp.get('/state', function(req, res) {
+    res.json(pageManager.loadState());
+});
 webapp.listen(8300);

@@ -6,6 +6,7 @@
 var logging = require('./utils/logging.js');
 var phantom = require('phantom');
 var util = require('util');
+var _ = require("underscore");
 
 /**
  * Page manager factory
@@ -17,6 +18,7 @@ module.exports.create = function(options) {
 
     return {
         excludes: options.excludes || [], // regex patterns to exclude resources
+        maxPhantomjsInstances: 10,
         maxPages: 100, // not implemented yet
 
         shouldExclued: function(url) {
@@ -150,28 +152,41 @@ module.exports.create = function(options) {
          */
         getPhantomInstance: function(callback) {
             var thisManager = this;
-            logging.log('Creating new phantomjs instance');
-            if (thisManager.phantomjsInstances.length === 0) {
-                phantom.create(function(ph) {
-                    thisManager.phantomjsInstances.push(ph);
-                    logging.log(util.format('New phantomjs instance(pid=%s) created', ph.process.pid));
-                    callback(ph);
-                }, {
-                    onExit: function() {
-                        logging.log('phantomjs instance crashed or exited');
-                        //FIXME: remove the crashed instance
-                        //delete thisManager.phantomjsInstances[0];
-                        //thisManager.phantomjsInstances.splice(0, 1);
-                    }
-                });
+            var curCount = thisManager.phantomjsInstances.length;
+            if (curCount < thisManager.maxPhantomjsInstances /* and all instances are fully-loaded */) {
+                if (!thisManager._createingPhantomjsInstance) {
+                    logging.log('Creating new phantomjs instance');
+                    thisManager._createingPhantomjsInstance = true;
+                    phantom.create(function(ph) {
+                        thisManager.phantomjsInstances.push(ph);
+                        logging.log(util.format('New phantomjs instance(pid=%s) created', ph.process.pid));
+                        callback(ph);
+                        thisManager._createingPhantomjsInstance = false;
+                    }, {
+                        onExit: function() {
+                            logging.log('phantomjs instance crashed or exited');
+                            //FIXME: remove the crashed instance
+                            //delete thisManager.phantomjsInstances[0];
+                            //thisManager.phantomjsInstances.splice(0, 1);
+                        }
+                    });
+                } else {
+                    logging.log('Waiting creation of antoher phantomjs to be done');
+                    setTimeout(function() {
+                        thisManager.getPhantomInstance(callback);
+                    }, 100);
+                }
+            } else {
+                var ph = _.sample(thisManager.phantomjsInstances);
+                logging.log('Got existing phantomjs instance');
+                callback(ph);
             }
         },
 
         _createPage: function(callback) {
             var thisManager = this;
             logging.log('Creating new page');
-            if (thisManager.phantomjsInstances.length > 0) {
-                var ph = thisManager.phantomjsInstances[0];
+            thisManager.getPhantomInstance(function(ph) {
                 ph.createPage(function(page) {
                     page.belongingPhantomjs = ph;
                     thisManager._setupPage(page);
@@ -180,11 +195,7 @@ module.exports.create = function(options) {
                                             page.belongingPhantomjs.process.pid));
                     callback(page);
                 });
-            } else {
-                thisManager.getPhantomInstance(function() {
-                    thisManager._createPage(callback);
-                });
-            }
+            });
         },
 
         /**
