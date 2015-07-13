@@ -25,7 +25,7 @@ var takeSnapshot = function(url, callback) {
             if (status === "success") {
                 logging.log('Successfully loaded', url);
                 // NOTE: just wating is not safe!
-                page.onPageIdle(function() {
+                page.onIdle(function() {
                     logging.log('Capturing DOM of', url);
                     page.evaluate(function() {
                         if (!document || !document.body) {

@@ -43,12 +43,27 @@ module.exports.create = function(options) {
             // - https://gist.github.com/cjoudrey/1341747, about trace of pending requests
             // - https://cdnjs.com/libraries/backbone.js/tutorials/seo-for-single-page-apps/
             page.pendingRequests = 0;
-            page.waitRequestTimeout = undefined;
+            page.waitMoreRequestsAfter0Timeout = undefined;
             page._pageIdleListeners = [];
 
-            page.onPageIdle = function(callback) {
+            page.onIdle = function(callback) {
                 page._pageIdleListeners.push(callback);
             };
+
+            page.setIdle = function() {
+                page._pageIdleListeners.splice(0).forEach(function(callback) {
+                    callback();
+                });
+            };
+
+            // handle total timeout of page
+            page.waitMoreRequests = function() {
+                return setTimeout(function() {
+                    logging.log("It's 5s with no new requests after last request sent");
+                    page.setIdle();
+                }, 10000);
+            };
+            page.waitMoreRequestsTimeout = page.waitMoreRequests();
 
             page.set('settings.excludedResources', thisManager.excludes.map(function(v) {
                 return v.toString();
@@ -78,13 +93,19 @@ module.exports.create = function(options) {
             }, function(requestData) {
                 // NOTE: this code executes just here
                 if (!thisManager.shouldExclued(requestData.url)) {
-                    if (page.waitRequestTimeout) {
+                    if (page.waitMoreRequestsAfter0Timeout) {
                         logging.log('New requests comes after pending count went 0');
-                        clearTimeout(page.waitRequestTimeout);
-                        page.waitRequestTimeout = undefined;
+                        clearTimeout(page.waitMoreRequestsAfter0Timeout);
+                        page.waitMoreRequestsAfter0Timeout = undefined;
                     }
                     page.pendingRequests += 1;
                     logging.log(util.format('Pending requests=%d, plus %s', page.pendingRequests, requestData.url));
+
+                    if(page.waitMoreRequestsTimeout) {
+                        clearTimeout(page.waitMoreRequestsTimeout);
+                    }
+                    page.waitMoreRequestsTimeout = page.waitMoreRequests();
+
                 }
             });
 
@@ -95,11 +116,9 @@ module.exports.create = function(options) {
                     logging.log(util.format('Pending requests=%d, minus %s', page.pendingRequests, response.url));
                     if (page.pendingRequests === 0) {
                         logging.log('Wait if more requests...');
-                        page.waitRequestTimeout = setTimeout(function() {
+                        page.waitMoreRequestsAfter0Timeout = setTimeout(function() {
                             logging.log('No more requests 100ms after pending request went 0');
-                            page._pageIdleListeners.forEach(function(callback) {
-                                callback();
-                            });
+                            page.setIdle();
                         }, 100);
                     }
                 }
