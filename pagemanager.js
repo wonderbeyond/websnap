@@ -182,6 +182,9 @@ module.exports.create = function(options) {
                         callback(ph);
                         thisManager._createingPhantomjsInstance = false;
                     }, {
+                        parameters: {
+                            'disk-cache': true
+                        },
                         onExit: function() {
                             logging.log('phantomjs instance crashed or exited');
                             //FIXME: remove the crashed instance
