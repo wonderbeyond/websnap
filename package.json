@@ -5,8 +5,8 @@
   "main": "websnap.js",
   "dependencies": {
     "express": "^4.13.1",
-    "phantom": "^0.7.2",
-    "underscore": "^1.8.3"
+    "lodash": "^3.10.0",
+    "phantom": "^0.7.2"
   },
   "devDependencies": {},
   "scripts": {

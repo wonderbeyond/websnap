@@ -6,7 +6,7 @@
 var logging = require('./utils/logging.js');
 var phantom = require('phantom');
 var util = require('util');
-var _ = require("underscore");
+var _ = require("lodash");
 
 /**
  * Page manager factory
